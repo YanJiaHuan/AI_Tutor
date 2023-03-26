@@ -285,9 +285,12 @@ class Reader:
                     - (1):xxx;\n                     
                     - (2):Innovation point: xxx; Performance: xxx; Workload: xxx;\n                      
 
-                 Be sure to use {} answers (proper nouns need to be marked in English), statements as concise and academic as possible, do not repeat the content of the previous <summary>, the value of the use of the original numbers, be sure to strictly follow the format, the corresponding content output to xxx, in accordance with \n line feed, ....... means fill in according to the actual requirements, if not, you can not write.                 
+                 Be sure to use {} answers (proper nouns need to be marked in English), statements as concise and academic as possible, do not repeat the content of the previous <summary>, the value of the use of the original numbers, be sure to strictly follow the format, the corresponding content output to xxx, in accordance with \n line feed, ....... means fill in according to the actual requirements, if not, you can not write.your total feedback should be no more than 20 words                 
                  """.format(self.language, self.language)},
         ]
+        # print('#' * 20)
+        # print(messages)
+        # print('#' * 20)
         response = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
             # prompt需要用英语替换，少占用token。
@@ -296,11 +299,11 @@ class Reader:
         result = ''
         for choice in response.choices:
             result += choice.message.content
-        print("conclusion_result:\n", result)
-        print("prompt_token_used:", response.usage.prompt_tokens,
-              "completion_token_used:", response.usage.completion_tokens,
-              "total_token_used:", response.usage.total_tokens)
-        print("response_time:", response.response_ms / 1000.0, 's')
+        # print("conclusion_result:\n", result)
+        # print("prompt_token_used:", response.usage.prompt_tokens,
+        #       "completion_token_used:", response.usage.completion_tokens,
+        #       "total_token_used:", response.usage.total_tokens)
+        # print("response_time:", response.response_ms / 1000.0, 's')
         return result
 
     @tenacity.retry(wait=tenacity.wait_exponential(multiplier=1, min=4, max=10),
@@ -314,6 +317,7 @@ class Reader:
         text_token = len(self.encoding.encode(text))
         clip_text_index = int(len(text) * (self.max_token_num - method_prompt_token) / text_token)
         clip_text = text[:clip_text_index]
+        # print(clip_text)
         messages = [
             {"role": "system",
              "content": "You are a researcher in the field of [" + self.key_word + "] who is good at summarizing papers using concise statements"},
@@ -322,7 +326,7 @@ class Reader:
              "content": "This is the <summary> and <Method> part of an English document, where <summary> you have summarized, but the <Methods> part, I need your help to read and summarize the following questions." + clip_text},
             # 背景知识
             {"role": "user", "content": """                 
-                 7. Describe in detail the methodological idea of this article. Be sure to use {} answers (proper nouns need to be marked in English). For example, its steps are.
+                 7. Describe in detail the methodological idea of this article. Be sure to use {} answers (proper nouns need to be marked in English). For example, its steps are. your total feedback should be no more than 20 words
                     - (1):...
                     - (2):...
                     - (3):...
@@ -337,6 +341,9 @@ class Reader:
                  Be sure to use {} answers (proper nouns need to be marked in English), statements as concise and academic as possible, do not repeat the content of the previous <summary>, the value of the use of the original numbers, be sure to strictly follow the format, the corresponding content output to xxx, in accordance with \n line feed, ....... means fill in according to the actual requirements, if not, you can not write.                 
                  """.format(self.language, self.language)},
         ]
+        # print('#' * 20)
+        # print(messages)
+        # print('#' * 20)
         response = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
             messages=messages,
@@ -344,11 +351,11 @@ class Reader:
         result = ''
         for choice in response.choices:
             result += choice.message.content
-        print("method_result:\n", result)
-        print("prompt_token_used:", response.usage.prompt_tokens,
-              "completion_token_used:", response.usage.completion_tokens,
-              "total_token_used:", response.usage.total_tokens)
-        print("response_time:", response.response_ms / 1000.0, 's')
+        # print("method_result:\n", result)
+        # print("prompt_token_used:", response.usage.prompt_tokens,
+        #       "completion_token_used:", response.usage.completion_tokens,
+        #       "total_token_used:", response.usage.total_tokens)
+        # print("response_time:", response.response_ms / 1000.0, 's')
         return result
 
     @tenacity.retry(wait=tenacity.wait_exponential(multiplier=1, min=4, max=10),
@@ -367,31 +374,64 @@ class Reader:
              "content": "You are a researcher in the field of [" + self.key_word + "] who is good at summarizing papers using concise statements"},
             {"role": "assistant",
              "content": "This is the title, author, link, abstract and introduction of an English document. I need your help to read and summarize the following questions: " + clip_text},
-            {"role": "user", "content": """                 
-                 1. Mark the title of the paper (with Chinese translation)
-                 2. list all the authors' names (use English)
-                 3. mark the first author's affiliation (output {} translation only)                 
-                 4. mark the keywords of this article (use English)
-                 5. link to the paper, Github code link (if available, fill in Github:None if not)
-                 6. summarize according to the following four points.Be sure to use {} answers (proper nouns need to be marked in English)
-                    - (1):What is the research background of this article?
-                    - (2):What are the past methods? What are the problems with them? Is the approach well motivated?
-                    - (3):What is the research methodology proposed in this paper?
-                    - (4):On what task and what performance is achieved by the methods in this paper? Can the performance support their goals?
-                 Follow the format of the output that follows:                  
-                 1. Title: xxx\n\n
-                 2. Authors: xxx\n\n
-                 3. Affiliation: xxx\n\n                 
-                 4. Keywords: xxx\n\n   
-                 5. Urls: xxx or xxx , xxx \n\n      
-                 6. Summary: \n\n
-                    - (1):xxx;\n 
-                    - (2):xxx;\n 
-                    - (3):xxx;\n  
-                    - (4):xxx.\n\n     
+            {"role": "user", "content": """  
+                You need to answer the following questions:
+                1. Title of Presentation 
+
+                2. Section 1: Introduction 
+
+                    - Brief overview of topic 
+                    
+                    - Key points to be covered 
+
+  
+
+                3. Section 2: Background Information 
+
+                    - Historical context 
+                    
+                    - Key figures and events 
+                    
+                    - Relevant theories 
+
+  
+
+                4. Section 3: Main Points 
+                
+                    - Point 1 
+                    
+                    - Point 2 
+                    
+                    - Point 3 
+
+  
+
+                5. Section 4: Case Study or Example 
+                
+                    - Real-world example 
+                    
+                    - Analyze how topic applies to case study 
+
+  
+
+                6. Section 5: Conclusion 
+                
+                    - Summary of key points 
+                    
+                    - Takeaways for the audience 
+                    
+                    - Future directions for research or practice 
+
+  
+                
+                7. References 
+                
+                    - List of sources cited in presentation 
+
+    
 
                  Be sure to use {} answers (proper nouns need to be marked in English), statements as concise and academic as possible, do not have too much repetitive information, numerical values using the original numbers, be sure to strictly follow the format, the corresponding content output to xxx, in accordance with \n line feed.                 
-                 """.format(self.language, self.language, self.language)},
+                 """.format(self.language, self.language)},
         ]
 
         response = openai.ChatCompletion.create(
@@ -444,6 +484,9 @@ class Reader:
                                
                  """.format(self.language, self.language)},
         ]
+        print('#'*20)
+        print(messages)
+        print('#' * 20)
         response = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
             # prompt需要用英语替换，少占用token。
@@ -608,7 +651,7 @@ def main_2(args):
         print(terminology)
     else:
         print("not find pdf_path")
-        # type in terminal: python ./lib/chat_paper.py --pdf_path "demo.pdf"
+        # type in terminal:
 
 
 # def main():

@@ -12,8 +12,8 @@ def clear_directory(directory):
 
 # Replace 'path1/path2' with the path to the directory you want to clear
 path1 = "../data"
-path2 = "../export"
+# path2 = "../export"
 # path3 = "./pdf_files"
 clear_directory(path1)
-clear_directory(path2)
+# clear_directory(path2)
 # clear_directory(path3)

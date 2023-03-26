@@ -471,56 +471,74 @@ def content_extractor(md_name):
     return paper_info
 
 
-def main(args):
-    # 创建一个Reader对象，并调用show_info方法
-    if args.sort == 'Relevance':
-        sort = arxiv.SortCriterion.Relevance
-    elif args.sort == 'LastUpdatedDate':
-        sort = arxiv.SortCriterion.LastUpdatedDate
-    else:
-        sort = arxiv.SortCriterion.Relevance
+# def main(args):
+#     # 创建一个Reader对象，并调用show_info方法
+#     # if args.sort == 'Relevance':
+#     #     sort = arxiv.SortCriterion.Relevance
+#     # elif args.sort == 'LastUpdatedDate':
+#     #     sort = arxiv.SortCriterion.LastUpdatedDate
+#     # else:
+#     #     sort = arxiv.SortCriterion.Relevance
+#
+#     if args.pdf_path:
+#         # reader1 = Reader(key_word=args.key_word,
+#         #                  query=args.query,
+#         #                  filter_keys=args.filter_keys,
+#         #                  sort=sort,
+#         #                  args=args
+#         #                  )
+#         # reader1.show_info()
+#         # 开始判断是路径还是文件：
+#         paper_list = []
+#         if args.pdf_path.endswith(".pdf"):
+#             paper_list.append(Paper(path=args.pdf_path))
+#         else:
+#             for root, dirs, files in os.walk(args.pdf_path):
+#                 print("root:", root, "dirs:", dirs, 'files:', files)  # 当前目录路径
+#                 for filename in files:
+#                     # 如果找到PDF文件，则将其复制到目标文件夹中
+#                     if filename.endswith(".pdf"):
+#                         paper_list.append(Paper(path=os.path.join(root, filename)))
+#         print("------------------paper_num: {}------------------".format(len(paper_list)))
+#         [print(paper_index, paper_name.path.split('\\')[-1]) for paper_index, paper_name in enumerate(paper_list)]
+#         # output = reader1.summary_with_chat(paper_list=paper_list)
+#         for paper in paper_list:
+#             print(paper.title)
+#             with open(f"./data/{validateTitle_2(paper.title)}.json", "w") as write_file:
+#                 paper.section_text_dict.update(content_extractor(f"./export/{validateTitle_2(paper.title)}.md"))
+#                 json.dump(paper.section_text_dict, write_file, indent=4)
+#     else:
+#         reader1 = Reader(key_word=args.key_word,
+#                          query=args.query,
+#                          filter_keys=args.filter_keys,
+#                          sort=sort,
+#                          args=args
+#                          )
+#         reader1.show_info()
+#         filter_results = reader1.filter_arxiv(max_results=args.max_results)
+#         paper_list = reader1.download_pdf(filter_results)
+#         reader1.summary_with_chat(paper_list=paper_list)
+#         for paper in paper_list:
+#             with open(f"./data/{paper.title}.json", "w") as write_file:
+#                 paper.section_text_dict.update(content_extractor(f"./export/{validateTitle_2(paper.title)}.md"))
+#                 json.dump(paper.section_text_dict, write_file, indent=4)
 
-    if args.pdf_path:
-        reader1 = Reader(key_word=args.key_word,
-                         query=args.query,
-                         filter_keys=args.filter_keys,
-                         sort=sort,
-                         args=args
-                         )
-        reader1.show_info()
-        # 开始判断是路径还是文件：
-        paper_list = []
-        if args.pdf_path.endswith(".pdf"):
-            paper_list.append(Paper(path=args.pdf_path))
-        else:
-            for root, dirs, files in os.walk(args.pdf_path):
-                print("root:", root, "dirs:", dirs, 'files:', files)  # 当前目录路径
-                for filename in files:
-                    # 如果找到PDF文件，则将其复制到目标文件夹中
-                    if filename.endswith(".pdf"):
-                        paper_list.append(Paper(path=os.path.join(root, filename)))
-        print("------------------paper_num: {}------------------".format(len(paper_list)))
-        [print(paper_index, paper_name.path.split('\\')[-1]) for paper_index, paper_name in enumerate(paper_list)]
-        # output = reader1.summary_with_chat(paper_list=paper_list)
-        for paper in paper_list:
-            with open(f"./data/{paper.title}.json", "w") as write_file:
-                paper.section_text_dict.update(content_extractor(f"./export/{validateTitle_2(paper.title)}.md"))
-                json.dump(paper.section_text_dict, write_file, indent=4)
-    else:
-        reader1 = Reader(key_word=args.key_word,
-                         query=args.query,
-                         filter_keys=args.filter_keys,
-                         sort=sort,
-                         args=args
-                         )
-        reader1.show_info()
-        filter_results = reader1.filter_arxiv(max_results=args.max_results)
-        paper_list = reader1.download_pdf(filter_results)
-        reader1.summary_with_chat(paper_list=paper_list)
-        for paper in paper_list:
-            with open(f"./data/{paper.title}.json", "w") as write_file:
-                paper.section_text_dict.update(content_extractor(f"./export/{validateTitle_2(paper.title)}.md"))
-                json.dump(paper.section_text_dict, write_file, indent=4)
+
+def main():
+    path_file = './pdf_files/reinforcement learning-2023-03-23-11'
+    print('start')
+    paper_list = []
+    for root, dirs, files in os.walk(path_file):
+        for filename in files:
+            if filename.endswith(".pdf"):
+                paper_list.append(Paper(path=(root+'/'+filename)))
+    print(len(paper_list))
+    for paper in paper_list:
+        print(paper.title)
+        paper_name = validateTitle_2(paper.title)
+        with open(f"./data/{paper_name}.json", "w") as write_file:
+            # paper.section_text_dict.update(content_extractor(f"./export/{paper_name}.md"))
+            json.dump(paper.section_text_dict, write_file, indent=4)
 
 
 if __name__ == '__main__':
@@ -547,7 +565,8 @@ if __name__ == '__main__':
     import time
 
     start_time = time.time()
-    main(args=args)
+    # main(args=args)
+    main()
     print("summary time:", time.time() - start_time)
 
 ##################

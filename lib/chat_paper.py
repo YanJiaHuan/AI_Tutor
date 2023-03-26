@@ -423,7 +423,37 @@ class Reader:
         print(f"Query: {self.query}")
         print(f"Sort: {self.sort}")
 
+    def chat_terminology(self, text):
+        openai.api_key = self.chat_api_list[self.cur_api]
+        self.cur_api += 1
+        self.cur_api = 0 if self.cur_api >= len(self.chat_api_list) - 1 else self.cur_api
+        conclusion_prompt_token = 650
+        text_token = len(self.encoding.encode(text))
+        clip_text_index = int(len(text) * (self.max_token_num - conclusion_prompt_token) / text_token)
+        clip_text = text[:clip_text_index]
 
+        messages = [
+            {"role": "system",
+             "content": "You are a reviewer in the field of [" + self.key_word + "] and you need to critically review this article"},
+            # chatgpt 角色
+            {"role": "assistant",
+             "content": "This is the <summary> and <conclusion> part of an English literature, where <summary> you have already summarized, but <conclusion> part, I need your help to answer the following questions:" + clip_text},
+            # 背景知识，可以参考OpenReview的审稿流程
+            {"role": "user", "content": """                 
+                 List 10 terminology in this article and use your own knowledge or content from thia article to explain them.
+                               
+                 """.format(self.language, self.language)},
+        ]
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            # prompt需要用英语替换，少占用token。
+            messages=messages,
+        )
+        result = ''
+        for choice in response.choices:
+            result += choice.message.content
+        print(result)
+        return result
 def content_extractor(md_name):
     with open(
             md_name,
@@ -481,14 +511,14 @@ def content_extractor(md_name):
 #     #     sort = arxiv.SortCriterion.Relevance
 #
 #     if args.pdf_path:
-#         # reader1 = Reader(key_word=args.key_word,
-#         #                  query=args.query,
-#         #                  filter_keys=args.filter_keys,
-#         #                  sort=sort,
-#         #                  args=args
-#         #                  )
-#         # reader1.show_info()
-#         # 开始判断是路径还是文件：
+#         reader1 = Reader(key_word=args.key_word,
+#                          query=args.query,
+#                          filter_keys=args.filter_keys,
+#                          sort=args.sort,
+#                          args=args
+#                          )
+#         reader1.show_info()
+#         #开始判断是路径还是文件：
 #         paper_list = []
 #         if args.pdf_path.endswith(".pdf"):
 #             paper_list.append(Paper(path=args.pdf_path))
@@ -511,34 +541,91 @@ def content_extractor(md_name):
 #         reader1 = Reader(key_word=args.key_word,
 #                          query=args.query,
 #                          filter_keys=args.filter_keys,
-#                          sort=sort,
+#                          sort=args.sort,
 #                          args=args
 #                          )
 #         reader1.show_info()
 #         filter_results = reader1.filter_arxiv(max_results=args.max_results)
 #         paper_list = reader1.download_pdf(filter_results)
 #         reader1.summary_with_chat(paper_list=paper_list)
-#         for paper in paper_list:
-#             with open(f"./data/{paper.title}.json", "w") as write_file:
-#                 paper.section_text_dict.update(content_extractor(f"./export/{validateTitle_2(paper.title)}.md"))
-#                 json.dump(paper.section_text_dict, write_file, indent=4)
+#         # for paper in paper_list:
+#         #     with open(f"./data/{paper.title}.json", "w") as write_file:
+#         #         paper.section_text_dict.update(content_extractor(f"./export/{validateTitle_2(paper.title)}.md"))
+#         #         json.dump(paper.section_text_dict, write_file, indent=4)
+def main(args):
+    # 创建一个Reader对象，并调用show_info方法
+    if args.sort == 'Relevance':
+        sort = arxiv.SortCriterion.Relevance
+    elif args.sort == 'LastUpdatedDate':
+        sort = arxiv.SortCriterion.LastUpdatedDate
+    else:
+        sort = arxiv.SortCriterion.Relevance
+
+    if args.pdf_path:
+        reader1 = Reader(key_word=args.key_word,
+                         query=args.query,
+                         filter_keys=args.filter_keys,
+                         sort=sort,
+                         args=args
+                         )
+        reader1.show_info()
+        # 开始判断是路径还是文件：
+        paper_list = []
+        if args.pdf_path.endswith(".pdf"):
+            paper_list.append(Paper(path=args.pdf_path))
+        else:
+            for root, dirs, files in os.walk(args.pdf_path):
+                print("root:", root, "dirs:", dirs, 'files:', files)  # 当前目录路径
+                for filename in files:
+                    # 如果找到PDF文件，则将其复制到目标文件夹中
+                    if filename.endswith(".pdf"):
+                        paper_list.append(Paper(path=os.path.join(root, filename)))
+        print("------------------paper_num: {}------------------".format(len(paper_list)))
+        [print(paper_index, paper_name.path.split('\\')[-1]) for paper_index, paper_name in enumerate(paper_list)]
+        reader1.summary_with_chat(paper_list=paper_list)
+    else:
+        reader1 = Reader(key_word=args.key_word,
+                         query=args.query,
+                         filter_keys=args.filter_keys,
+                         sort=sort,
+                         args=args
+                         )
+        reader1.show_info()
+        filter_results = reader1.filter_arxiv(max_results=args.max_results)
+        paper_list = reader1.download_pdf(filter_results)
+        reader1.summary_with_chat(paper_list=paper_list)
+def main_2(args):
+    if args.pdf_path:
+        reader1 = Reader(key_word=args.key_word,
+                         query=args.query,
+                         filter_keys=args.filter_keys,
+                         sort=args.sort,
+                         args=args
+                         )
+        reader1.show_info()
+        paper_content = Paper(args.pdf_path)
+        terminology = reader1.chat_terminology(paper_content)
+        print(terminology)
+    else:
+        print("not find pdf_path")
+        # type in terminal: python ./lib/chat_paper.py --pdf_path "demo.pdf"
 
 
-def main():
-    path_file = './pdf_files/reinforcement learning-2023-03-23-11'
-    print('start')
-    paper_list = []
-    for root, dirs, files in os.walk(path_file):
-        for filename in files:
-            if filename.endswith(".pdf"):
-                paper_list.append(Paper(path=(root+'/'+filename)))
-    print(len(paper_list))
-    for paper in paper_list:
-        print(paper.title)
-        paper_name = validateTitle_2(paper.title)
-        with open(f"./data/{paper_name}.json", "w") as write_file:
-            # paper.section_text_dict.update(content_extractor(f"./export/{paper_name}.md"))
-            json.dump(paper.section_text_dict, write_file, indent=4)
+# def main():
+#     path_file = './pdf_files/reinforcement learning-2023-03-23-11'
+#     print('start')
+#     paper_list = []
+#     for root, dirs, files in os.walk(path_file):
+#         for filename in files:
+#             if filename.endswith(".pdf"):
+#                 paper_list.append(Paper(path=(root+'/'+filename)))
+#     print(len(paper_list))
+#     for paper in paper_list:
+#         print(paper.title)
+#         paper_name = validateTitle_2(paper.title)
+#         with open(f"./data/{paper_name}.json", "w") as write_file:
+#             # paper.section_text_dict.update(content_extractor(f"./export/{paper_name}.md"))
+#             json.dump(paper.section_text_dict, write_file, indent=4)
 
 
 if __name__ == '__main__':
@@ -562,12 +649,7 @@ if __name__ == '__main__':
     parser.add_argument("--language", type=str, default='en', help="The other output lauguage is English, is en")
 
     args = parser.parse_args()
-    import time
-
-    start_time = time.time()
-    # main(args=args)
-    main()
-    print("summary time:", time.time() - start_time)
+    main(args)
 
 ##################
 #type "python ./lib/chat_paper.py  " in your terminal, the code will download 100 paper to local,and do parser and GPTsummary afterwards

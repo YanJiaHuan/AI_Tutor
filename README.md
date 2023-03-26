@@ -8,7 +8,6 @@ conda install pytorch torchvision torchaudio -c pytorch
 
 ## ==一些函数==
 - run 'clear_file.py' to clear the file in the folder
-- run 'chat_paper.py' to get papers from arxiv according to filter content and keywords
 - run 'chat_paper.py' to get papers from arxiv according to filter content and keywords  
 Notice: It will first download the papers to local folder, then create folder to keep all the .md files, 
 which contains the response from chatgppt

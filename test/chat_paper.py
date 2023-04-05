@@ -33,7 +33,7 @@ class Reader:
         # 创建一个ConfigParser对象
         self.config = configparser.ConfigParser()
         # 读取配置文件
-        self.config.read('apikey.ini')
+        self.config.read('./test/apikey.ini')
         # 获取某个键对应的值        
         self.chat_api_list = self.config.get('OpenAI', 'OPENAI_API_KEYS')[1:-1].replace('\'', '').split(',')
         self.chat_api_list = [api.strip() for api in self.chat_api_list if len(api) > 5]
@@ -537,7 +537,7 @@ def main(args):
     
 if __name__ == '__main__':    
     parser = argparse.ArgumentParser()
-    parser.add_argument("--pdf_path", type=str, default=r'demo.pdf', help="if none, the bot will download from arxiv with query")
+    parser.add_argument("--pdf_path", type=str, default='./test/demo.pdf', help="if none, the bot will download from arxiv with query")
     # parser.add_argument("--pdf_path", type=str, default=r'C:\Users\Administrator\Desktop\DHER\RHER_Reset\ChatPaper', help="if none, the bot will download from arxiv with query")
     # parser.add_argument("--pdf_path", type=str, default='', help="if none, the bot will download from arxiv with query")
     parser.add_argument("--query", type=str, default='all: ChatGPT robot', help="the query string, ti: xx, au: xx, all: xx,")    

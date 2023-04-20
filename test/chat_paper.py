@@ -162,8 +162,9 @@ class Reader:
             
         return image_url
         
-    def summary_with_chat(self, paper_list):
-        htmls = []
+    def summary_with_chat(self, mydata, paper_list):
+        # htmls = []
+        data_dic = {}
         for paper_index, paper in enumerate(paper_list):
             # print(paper_index, paper.abstract)
             # 第一步先用title，abs，和introduction进行总结。
@@ -174,110 +175,110 @@ class Reader:
             text += '|The first page info:' + paper.section_text_dict['paper_info']
             # intro
             text += list(paper.section_text_dict.values())[0]
-            chat_summary_text = ""
+            # chat_summary_text = ""
             try:
-                chat_summary_text = self.chat_summary(text=text)     
+                mydata = self.chat_summary(text=text)     
             except Exception as e:
                 print("summary_error:", e)
                 if "maximum context" in str(e):
                     current_tokens_index = str(e).find("your messages resulted in") + len("your messages resulted in")+1
                     offset = int(str(e)[current_tokens_index:current_tokens_index+4])
                     summary_prompt_token = offset+1000+150
-                    chat_summary_text = self.chat_summary(text=text, summary_prompt_token=summary_prompt_token)
-    
+                    mydata = self.chat_summary(text=text, summary_prompt_token=summary_prompt_token)
+
             # htmls.append('## Paper:' + str(paper_index+1))
             # htmls.append('\n\n\n')            
             # htmls.append(chat_summary_text)
             
-            # 第二步总结方法：
-            # TODO，由于有些文章的方法章节名是算法名，所以简单的通过关键词来筛选，很难获取，后面需要用其他的方案去优化。
-            import json
-            # print(json.dumps(paper.section_text_dict))
-            method_key = ''
-            for parse_key in paper.section_text_dict.keys():
-                if 'method' in parse_key.lower() or 'approach' in parse_key.lower():
-                    method_key = parse_key
-                    break
+            # # 第二步总结方法：
+            # # TODO，由于有些文章的方法章节名是算法名，所以简单的通过关键词来筛选，很难获取，后面需要用其他的方案去优化。
+            # method_key = ''
+            # for parse_key in paper.section_text_dict.keys():
+            #     if 'method' in parse_key.lower() or 'approach' in parse_key.lower():
+            #         method_key = parse_key
+            #         break
                 
-            if method_key != '':
-                text = ''
-                method_text = ''
-                summary_text = ''
-                summary_text += "<summary>" + chat_summary_text
-                # methods                
-                method_text += paper.section_text_dict[method_key]                   
-                text = summary_text + "\n\n<Methods>:\n\n" + method_text                 
-                chat_method_text = ""
-                try:
-                    chat_method_text = self.chat_method(text=text)                    
-                except Exception as e:
-                    print("method_error:", e)
-                    if "maximum context" in str(e):
-                        current_tokens_index = str(e).find("your messages resulted in") + len("your messages resulted in")+1
-                        offset = int(str(e)[current_tokens_index:current_tokens_index+4])
-                        method_prompt_token = offset+800+150                        
-                        chat_method_text = self.chat_method(text=text, method_prompt_token=method_prompt_token)           
-                # htmls.append(chat_method_text)
-            else:
-                chat_method_text = ''
-            # htmls.append("\n"*4)
+            # if method_key != '':
+            #     text = ''
+            #     method_text = ''
+            #     summary_text = ''
+            #     summary_text += "<Summary>" + chat_summary_text
+            #     # methods                
+            #     method_text += paper.section_text_dict[method_key]                   
+            #     text = summary_text + "\n\n<Method>:\n\n" + method_text                 
+            #     chat_method_text = ""
+            #     try:
+            #         chat_method_text = self.chat_method(text=text)                    
+            #     except Exception as e:
+            #         print("method_error:", e)
+            #         if "maximum context" in str(e):
+            #             current_tokens_index = str(e).find("your messages resulted in") + len("your messages resulted in")+1
+            #             offset = int(str(e)[current_tokens_index:current_tokens_index+4])
+            #             method_prompt_token = offset+800+150                        
+            #             chat_method_text = self.chat_method(text=text, method_prompt_token=method_prompt_token)           
+            #     # htmls.append(chat_method_text)
+            # else:
+            #     chat_method_text = ''
+            # # htmls.append("\n"*4)
             
-            # 第三步总结全文，并打分：
-            conclusion_key = ''
-            for parse_key in paper.section_text_dict.keys():
-                if 'conclu' in parse_key.lower():
-                    conclusion_key = parse_key
-                    break
+            # # 第三步总结全文，并打分：
+            # conclusion_key = ''
+            # for parse_key in paper.section_text_dict.keys():
+            #     if 'conclu' in parse_key.lower():
+            #         conclusion_key = parse_key
+            #         break
             
-            text = ''
-            conclusion_text = ''
-            summary_text = ''
-            summary_text += "<Summary>" + chat_summary_text + "\n <Method>:\n" + chat_method_text            
-            if conclusion_key != '':
-                # conclusion                
-                conclusion_text += paper.section_text_dict[conclusion_key]                                
-                text = summary_text + "\n\n<Conclusion>:\n\n" + conclusion_text 
-            else:
-                text = summary_text            
-            chat_conclusion_text = ""
-            try:
-                chat_conclusion_text = self.chat_conclusion(text=text)                 
-            except Exception as e:
-                print("conclusion_error:", e)
-                if "maximum context" in str(e):
-                    current_tokens_index = str(e).find("your messages resulted in") + len("your messages resulted in")+1
-                    offset = int(str(e)[current_tokens_index:current_tokens_index+4])
-                    conclusion_prompt_token = offset+800+150                                            
-                    chat_conclusion_text = self.chat_conclusion(text=text, conclusion_prompt_token=conclusion_prompt_token)
-            # htmls.append(chat_conclusion_text)
-            # htmls.append("\n"*4)
-            summary_text += "\n <Conclusion>:\n" + chat_conclusion_text
-            print("===========================================================================")
-            print(summary_text)
-            try:
-                chat_ppt_text = self.chat_ppt(text=summary_text)     
-            except Exception as e:
-                print("ppt_error:", e)
-                if "maximum context" in str(e):
-                    current_tokens_index = str(e).find("your messages resulted in") + len("your messages resulted in")+1
-                    offset = int(str(e)[current_tokens_index:current_tokens_index+4])
-                    ppt_prompt_token = offset+1000+150
-                    chat_ppt_text = self.chat_ppt(text=summary_text, ppt_prompt_token=ppt_prompt_token)         
-            htmls.append(chat_ppt_text)
-            # # 整合成一个文件，打包保存下来。
-            date_str = str(datetime.datetime.now())[:13].replace(' ', '-')
-            try:
-                export_path = os.path.join(self.root_path, 'export')
-                os.makedirs(export_path)
-            except:
-                pass                             
-            mode = 'w' if paper_index == 0 else 'a'
-            file_name = os.path.join(export_path, date_str+'-'+self.validateTitle(paper.title[:80])+"."+self.file_format)
-            self.export_to_markdown("\n".join(htmls), file_name=file_name, mode=mode)
+            # text = ''
+            # conclusion_text = ''
+            # summary_text = ''
+            # summary_text += "<Summary>" + chat_summary_text + "\n <Method>:\n" + chat_method_text            
+            # if conclusion_key != '':
+            #     # conclusion                
+            #     conclusion_text += paper.section_text_dict[conclusion_key]                                
+            #     text = summary_text + "\n\n<Conclusion>:\n\n" + conclusion_text 
+            # else:
+            #     text = summary_text            
+            # chat_conclusion_text = ""
+            # try:
+            #     chat_conclusion_text = self.chat_conclusion(text=text)                 
+            # except Exception as e:
+            #     print("conclusion_error:", e)
+            #     if "maximum context" in str(e):
+            #         current_tokens_index = str(e).find("your messages resulted in") + len("your messages resulted in")+1
+            #         offset = int(str(e)[current_tokens_index:current_tokens_index+4])
+            #         conclusion_prompt_token = offset+800+150                                            
+            #         chat_conclusion_text = self.chat_conclusion(text=text, conclusion_prompt_token=conclusion_prompt_token)
+            # # htmls.append(chat_conclusion_text)
+            # # htmls.append("\n"*4)
+            # summary_text += "\n <Conclusion>:\n" + chat_conclusion_text
+            # print("===========================================================================")
+            # print(summary_text)
+            # try:
+            #     chat_ppt_text = self.chat_ppt(text=summary_text)     
+            # except Exception as e:
+            #     print("ppt_error:", e)
+            #     if "maximum context" in str(e):
+            #         current_tokens_index = str(e).find("your messages resulted in") + len("your messages resulted in")+1
+            #         offset = int(str(e)[current_tokens_index:current_tokens_index+4])
+            #         ppt_prompt_token = offset+1000+150
+            #         chat_ppt_text = self.chat_ppt(text=summary_text, ppt_prompt_token=ppt_prompt_token)         
+            # htmls.append(chat_ppt_text)
+            # # # 整合成一个文件，打包保存下来。
+            # date_str = str(datetime.datetime.now())[:13].replace(' ', '-')
+            # try:
+            #     export_path = os.path.join(self.root_path, 'export')
+            #     os.makedirs(export_path)
+            # except:
+            #     pass                             
+            # mode = 'w' if paper_index == 0 else 'a'
+            # file_name = os.path.join(export_path, date_str+'-'+self.validateTitle(paper.title[:80])+"."+self.file_format)
+            # self.export_to_markdown("\n".join(htmls), file_name=file_name, mode=mode)
             
             # file_name = os.path.join(export_path, date_str+'-'+self.validateTitle(paper.title)+".md")
             # self.export_to_markdown("\n".join(htmls), file_name=file_name, mode=mode)
-            htmls = []
+            # htmls = []
+            with open("./test/mydata.json", "w") as out_file:
+                json.dump(mydata, out_file)
     
     @tenacity.retry(wait=tenacity.wait_exponential(multiplier=1, min=4, max=10),
                     stop=tenacity.stop_after_attempt(5),
@@ -292,7 +293,7 @@ class Reader:
         
         messages=[
                 {"role": "system", "content": "You are a reviewer in the field of ["+self.key_word+"] and you need to critically review this article"},  # chatgpt 角色
-                {"role": "assistant", "content": "This is the <summary> and <conclusion> part of an English literature, where <summary> you have already summarized, but <conclusion> part, I need your help to summarize the following questions:"+clip_text},  # 背景知识，可以参考OpenReview的审稿流程
+                {"role": "assistant", "content": "This is the <Summary> and <Conclusion> part of an English literature, where <Summary> you have already summarized, but <Conclusion> part, I need your help to summarize the following questions:"+clip_text},  # 背景知识，可以参考OpenReview的审稿流程
                 {"role": "user", "content": """                 
                  8. Make the following summary.Be sure to use {} answers (proper nouns need to be marked in English).
                     - (1):What is the significance of this piece of work?
@@ -333,7 +334,7 @@ class Reader:
         clip_text = text[:clip_text_index]        
         messages=[
                 {"role": "system", "content": "You are a researcher in the field of ["+self.key_word+"] who is good at summarizing papers using concise statements"},  # chatgpt 角色
-                {"role": "assistant", "content": "This is the <Summary> and <Method> part of an English document, where <summary> you have summarized, but the <Methods> part, I need your help to read and summarize the following questions."+clip_text},  # 背景知识
+                {"role": "assistant", "content": "This is the <Summary> and <Method> part of an English document, where <Summary> you have summarized, but the <Method> part, I need your help to read and summarize the following questions."+clip_text},  # 背景知识
                 {"role": "user", "content": """                 
                  7. Describe in detail the methodological idea of this article. Be sure to use {} answers (proper nouns need to be marked in English). For example, its steps are.
                     - (1):...
@@ -374,108 +375,112 @@ class Reader:
         text_token = len(self.encoding.encode(text))
         clip_text_index = int(len(text)*(self.max_token_num-summary_prompt_token)/text_token)
         clip_text = text[:clip_text_index]
-        messages=[
-                {"role": "system", "content": "You are a researcher in the field of ["+self.key_word+"] who is good at summarizing papers using concise statements"},
-                {"role": "assistant", "content": "This is the title, abstract, introduction and the first page info of an English document seperated by |. I need your help to read and summarize the following questions: "+clip_text},
-                {"role": "user", "content": """                 
-                 1. Mark the title of the paper
-                 2. list all the authors' names
-                 3. mark the first author's affiliation (output {} translation only)                 
-                 4. mark the keywords of this article (use English)
-                 5. link to the paper, Github code link (if available, fill in Github:None if not)
-                 6. summarize according to the following four points.Be sure to use {} answers (proper nouns need to be marked in English)
+        contents=["You are a researcher in the field of ["+self.key_word+"] who is good at summarizing papers using concise statements", 
+                    "This is the title, abstract, introduction and the first page info of an English document seperated by |: "+clip_text+" I need your help to read and summarize the following questions: ", 
+                    "Mark the title of the paper \n Follow the format of the output that follows: Title: xxx\n\n ", 
+                    "List all the authors' names \n Follow the format of the output that follows: Authors: xxx\n\n ",    
+                    "Mark the first author's affiliation \n Follow the format of the output that follows: Affiliation: xxx\n\n ", 
+                    "Mark the keywords of this article \n Follow the format of the output that follows: Keywords: xxx\n\n ",  
+                    "Link to the paper, Github code link (if available, fill in Github:None if not) \n Follow the format of the output that follows: Urls: xxx or xxx , xxx \n\n ",   
+                    """Summarize according to the following four points.Be sure to use {} answers (proper nouns need to be marked in English)
                     - (1):What is the research background of this article?
                     - (2):What are the past methods? What are the problems with them? Is the approach well motivated?
                     - (3):What is the research methodology proposed in this paper?
-                    - (4):On what task and what performance is achieved by the methods in this paper? Can the performance support their goals?
-                 Follow the format of the output that follows:                  
-                 1. Title: xxx\n\n
-                 2. Authors: xxx\n\n
-                 3. Affiliation: xxx\n\n                 
-                 4. Keywords: xxx\n\n   
-                 5. Urls: xxx or xxx , xxx \n\n      
-                 6. Summary: \n\n
+                    - (4):On what task and what performance is achieved by the methods in this paper? Can the performance support their goals? \n Follow the format of the output that follows: 
+                    Summary: \n\n
                     - (1):xxx;\n 
                     - (2):xxx;\n 
                     - (3):xxx;\n  
-                    - (4):xxx.\n\n     
-                 
-                 Be sure to use {} answers (proper nouns need to be marked in English), statements as concise and academic as possible, do not have too much repetitive information, numerical values using the original numbers, be sure to strictly follow the format, the corresponding content output to xxx, in accordance with \n line feed.                 
-                 """.format(self.language, self.language, self.language)},
-            ]
-                
-        response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            messages=messages,
-        )
-        result = ''
-        for choice in response.choices:
-            result += choice.message.content
-        print("summary_result:\n", result)
-        print("prompt_token_used:", response.usage.prompt_tokens,
-              "completion_token_used:", response.usage.completion_tokens,
-              "total_token_used:", response.usage.total_tokens)
-        print("response_time:", response.response_ms/1000.0, 's')                    
-        return result  
+                    - (4):xxx.\n\n  """,  
+                    "Make sure the statements as concise and academic as possible, do not have too much repetitive information, numerical values using the original numbers, be sure to strictly follow the format, the corresponding content output to xxx, in accordance with \n line feed. " 
+                    ]
+        msg_list=[]
+        for i in range(2,5):
+            msg_dict={}
+            messages=[
+                    {"role": "system", "content": contents[0]},
+                    {"role": "assistant", "content": contents[1]},
+                    {"role": "user", "content":contents[i]+contents[8]},
+                ]
+            # print(messages)               
+            response = openai.ChatCompletion.create(
+                model="gpt-3.5-turbo",
+                messages=messages,
+            )
+            result = ''
+            for choice in response.choices:
+                result += choice.message.content
+            # print("summary_result:\n", result)
+            print("prompt_token_used:", response.usage.prompt_tokens,
+                "completion_token_used:", response.usage.completion_tokens,
+                "total_token_used:", response.usage.total_tokens)
+            print("response_time:", response.response_ms/1000.0, 's')
+            # print(result) 
+            msg_dict["instruction"]=contents[i]+contents[8]    
+            msg_dict["input"]= contents[0]+contents[1]
+            msg_dict["output"]=result 
+            msg_list.append(msg_dict)
+            # print(msg_list)
+        return msg_list  
      
-    def chat_ppt(self, text, ppt_prompt_token = 1100):
-        openai.api_key = self.chat_api_list[self.cur_api]
-        self.cur_api += 1
-        self.cur_api = 0 if self.cur_api >= len(self.chat_api_list)-1 else self.cur_api
-        text_token = len(self.encoding.encode(text))
-        clip_text_index = int(len(text)*(self.max_token_num-ppt_prompt_token)/text_token)
-        clip_text = text[:clip_text_index]
-        messages=[
-                {"role": "system", "content": "You are a tutor in the field of ["+self.key_word+"] who is good at creating powerpoint slides from research papers."},
-                {"role": "assistant", "content": "This is the <Summary>, <Method> and <Conclusion> part of an English document where all you have summarized, I need your help to read and summarize the following questions: "+clip_text},
-                {"role": "user", "content": """   
-                Follow the format of the output that follows:               
-                # Title of Presentation: xxx\n
+    # def chat_ppt(self, text, ppt_prompt_token = 1100):
+    #     openai.api_key = self.chat_api_list[self.cur_api]
+    #     self.cur_api += 1
+    #     self.cur_api = 0 if self.cur_api >= len(self.chat_api_list)-1 else self.cur_api
+    #     text_token = len(self.encoding.encode(text))
+    #     clip_text_index = int(len(text)*(self.max_token_num-ppt_prompt_token)/text_token)
+    #     clip_text = text[:clip_text_index]
+    #     messages=[
+    #             {"role": "system", "content": "You are a tutor in the field of ["+self.key_word+"] who is good at creating powerpoint slides from research papers."},
+    #             {"role": "assistant", "content": "This is the <Summary>, <Method> and <Conclusion> part of an English document where all you have summarized, I need your help to read and summarize the following questions: "+clip_text},
+    #             {"role": "user", "content": """   
+    #             Follow the format of the output that follows:               
+    #             # Title of Presentation: xxx\n
                 
-                # Section 1: Introduction
-                - Brief overview of the topic: xxx\n
-                - Key points to be covered: xxx\n
+    #             # Section 1: Introduction
+    #             - Brief overview of the topic: xxx\n
+    #             - Key points to be covered: xxx\n
 
-                # Section 2: Background Information
-                - Historical context: xxx\n
-                - Key figures and events: xxx\n
-                - Relevant theories: xxx\n
+    #             # Section 2: Background Information
+    #             - Historical context: xxx\n
+    #             - Key figures and events: xxx\n
+    #             - Relevant theories: xxx\n
 
-                # Section 3: Main Points
-                - What dataset did this paper use? xxx\n
-                - What is the process of the proposed method? xxx\n
-                - What is the performance of the proposed method? Please note down its performance metrics. xxx\n
-                - What are the baseline models and their performances? Please note down these baseline methods. xxx\n
+    #             # Section 3: Main Points
+    #             - What dataset did this paper use? xxx\n
+    #             - What is the process of the proposed method? xxx\n
+    #             - What is the performance of the proposed method? Please note down its performance metrics. xxx\n
+    #             - What are the baseline models and their performances? Please note down these baseline methods. xxx\n
 
-                # Section 4: Case Study or Example
-                - Real-world example: xxx\n
-                - Analyze how this topic applies to case study: xxx\n
+    #             # Section 4: Case Study or Example
+    #             - Real-world example: xxx\n
+    #             - Analyze how this topic applies to case study: xxx\n
 
-                # Section 5: Conclusion
-                - Summary of key points: xxx\n
-                - Takeaways for the audience: xxx\n
-                - Future directions for research or practice: xxx\n
+    #             # Section 5: Conclusion
+    #             - Summary of key points: xxx\n
+    #             - Takeaways for the audience: xxx\n
+    #             - Future directions for research or practice: xxx\n
 
-                # References
-                - List of sources cited in the slides: xxx\n 
+    #             # References
+    #             - List of sources cited in the slides: xxx\n 
                  
-                 Be sure to use {} answers (proper nouns need to be marked in English), statements as concise and academic as possible, do not have too much repetitive information, numerical values using the original numbers, be sure to strictly follow the format, the corresponding content output to xxx, in accordance with \n line feed.                 
-                 """.format(self.language, self.language, self.language)},
-            ]
+    #              Be sure to use {} answers (proper nouns need to be marked in English), statements as concise and academic as possible, do not have too much repetitive information, numerical values using the original numbers, be sure to strictly follow the format, the corresponding content output to xxx, in accordance with \n line feed.                 
+    #              """.format(self.language, self.language, self.language)},
+    #         ]
                 
-        response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            messages=messages,
-        )
-        result = ''
-        for choice in response.choices:
-            result += choice.message.content
-        print("summary_result:\n", result)
-        print("prompt_token_used:", response.usage.prompt_tokens,
-              "completion_token_used:", response.usage.completion_tokens,
-              "total_token_used:", response.usage.total_tokens)
-        print("response_time:", response.response_ms/1000.0, 's')                    
-        return result          
+    #     response = openai.ChatCompletion.create(
+    #         model="gpt-3.5-turbo",
+    #         messages=messages,
+    #     )
+    #     result = ''
+    #     for choice in response.choices:
+    #         result += choice.message.content
+    #     print("summary_result:\n", result)
+    #     print("prompt_token_used:", response.usage.prompt_tokens,
+    #           "completion_token_used:", response.usage.completion_tokens,
+    #           "total_token_used:", response.usage.total_tokens)
+    #     print("response_time:", response.response_ms/1000.0, 's')                    
+    #     return result          
                         
     def export_to_markdown(self, text, file_name, mode='w'):
         # 使用markdown模块的convert方法，将文本转换为html格式
@@ -521,7 +526,8 @@ def main(args):
                         paper_list.append(Paper(path=os.path.join(root, filename)))        
         print("------------------paper_num: {}------------------".format(len(paper_list)))        
         [print(paper_index, paper_name.path.split('\\')[-1]) for paper_index, paper_name in enumerate(paper_list)]
-        reader1.summary_with_chat(paper_list=paper_list)
+        mydata=[]
+        reader1.summary_with_chat(mydata,paper_list=paper_list)
     else:
         reader1 = Reader(key_word=args.key_word, 
                          query=args.query, 
@@ -533,8 +539,9 @@ def main(args):
         filter_results = reader1.filter_arxiv(max_results=args.max_results)
         paper_list = reader1.download_pdf(filter_results)
         reader1.summary_with_chat(paper_list=paper_list)
-    
-    
+
+
+  
 if __name__ == '__main__':    
     parser = argparse.ArgumentParser()
     parser.add_argument("--pdf_path", type=str, default='./test/demo.pdf', help="if none, the bot will download from arxiv with query")
